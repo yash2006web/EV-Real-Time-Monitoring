@@ -1,0 +1,19 @@
+# Wokwi / build output
+build/
+.wokwi/
+
+# VS Code local settings
+.vscode/
+
+# Node / frontend dependencies
+node_modules/
+
+# Environment and secret files
+.env
+.env.*
+firebase-adminsdk*.json
+serviceAccountKey.json
+
+# OS files
+.DS_Store
+Thumbs.db

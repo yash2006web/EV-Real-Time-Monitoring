@@ -1,0 +1,80 @@
+:root {
+  color-scheme: dark;
+  --page: #07111d;
+  --page-glow: #102c49;
+  --surface: rgba(15, 31, 48, 0.88);
+  --surface-muted: #0b1b2b;
+  --border: rgba(125, 164, 196, 0.23);
+  --border-strong: rgba(146, 196, 230, 0.42);
+  --text: #edf6ff;
+  --muted: #9eb4c6;
+  --subtle: #6f879b;
+  --healthy: #38d69a;
+  --healthy-bg: rgba(56, 214, 154, 0.11);
+  --warning: #f6b94c;
+  --warning-bg: rgba(246, 185, 76, 0.12);
+  --critical: #ff6f72;
+  --critical-bg: rgba(255, 111, 114, 0.12);
+  --telemetry: #69b7ff;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(circle at 92% -10%, var(--page-glow), transparent 38%), var(--page);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.dashboard-container { width: min(1440px, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.25rem 0 3.5rem; }
+.dashboard-header, .brand, .connection-panel, .section-heading, .metric-heading, .data-context { display: flex; }
+.dashboard-header { align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; }
+.brand { align-items: center; gap: 1rem; }
+.brand-mark { display: grid; width: 3.25rem; height: 3.25rem; place-items: center; border: 1px solid rgba(105, 183, 255, 0.7); border-radius: 11px; background: linear-gradient(145deg, rgba(105, 183, 255, 0.26), rgba(56, 214, 154, 0.14)); box-shadow: inset 0 0 20px rgba(105, 183, 255, 0.12); color: #cce9ff; font-size: 0.8rem; font-weight: 900; letter-spacing: 0.08em; }
+.eyebrow, .connection-label, .health-label, .metric-heading h3, .metric-availability, .diagnostic-detail > p, .diagnostic-warnings > p { margin: 0; color: var(--subtle); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0.35rem; font-size: clamp(1.65rem, 3vw, 2.45rem); letter-spacing: -0.045em; line-height: 1.05; }
+h2 { margin: 0.32rem 0 0; font-size: 1.25rem; letter-spacing: -0.025em; }
+.subtitle, .section-note, .freshness { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.connection-panel { align-items: flex-start; min-width: 290px; gap: 0.75rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: rgba(10, 25, 40, 0.82); box-shadow: var(--shadow); }
+.status-dot { width: 0.7rem; height: 0.7rem; flex: 0 0 auto; margin-top: 0.28rem; border-radius: 50%; transition: background-color 180ms ease, box-shadow 180ms ease; }
+.status-dot--pending { background: var(--warning); box-shadow: 0 0 0 4px rgba(246, 185, 76, 0.15); }
+.status-dot--connected { background: var(--healthy); box-shadow: 0 0 0 4px rgba(56, 214, 154, 0.15); }
+.status-dot--error { background: var(--critical); box-shadow: 0 0 0 4px rgba(255, 111, 114, 0.15); }
+.connection-state { margin: 0.2rem 0 0.35rem; color: var(--text); font-size: 0.9rem; font-weight: 750; }
+.freshness { font-size: 0.76rem; }.freshness span { color: #c7d9e8; font-variant-numeric: tabular-nums; }
+
+.health-hero, .telemetry-section, .diagnostics-panel, .history-section { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow); }
+.health-hero { display: flex; align-items: end; justify-content: space-between; gap: 2rem; min-height: 180px; padding: clamp(1.35rem, 3vw, 2.2rem); border-color: var(--border-strong); background: linear-gradient(112deg, rgba(105, 183, 255, 0.15), rgba(15, 31, 48, 0.93) 54%); transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+.health-status { margin: 0.65rem 0 0; color: var(--telemetry); font-size: clamp(2rem, 5vw, 3.75rem); font-weight: 900; letter-spacing: -0.06em; line-height: 0.95; }
+.health-diagnosis { min-width: min(100%, 350px); padding: 1rem 1.1rem; border-left: 2px solid var(--border-strong); }.health-diagnosis > p:last-child { margin: 0.45rem 0 0; font-size: 1.05rem; font-weight: 800; line-height: 1.35; }
+.status-card--normal { border-color: rgba(56, 214, 154, 0.62); background: linear-gradient(112deg, var(--healthy-bg), rgba(15, 31, 48, 0.93) 54%); }.status-card--normal .health-status { color: var(--healthy); }.status-card--normal .health-diagnosis { border-color: var(--healthy); }
+.status-card--warning { border-color: rgba(246, 185, 76, 0.68); background: linear-gradient(112deg, var(--warning-bg), rgba(15, 31, 48, 0.93) 54%); }.status-card--warning .health-status, .diagnosis-card--warning > p:last-child { color: var(--warning); }.status-card--warning .health-diagnosis { border-color: var(--warning); }
+.status-card--critical { border-color: rgba(255, 111, 114, 0.72); background: linear-gradient(112deg, var(--critical-bg), rgba(15, 31, 48, 0.93) 54%); box-shadow: 0 16px 40px rgba(113, 24, 35, 0.18); }.status-card--critical .health-status, .diagnosis-card--critical > p:last-child { color: var(--critical); }.status-card--critical .health-diagnosis { border-color: var(--critical); }
+
+.telemetry-section { margin-top: 1.25rem; padding: 1.25rem; }.section-heading { align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; }.section-note { max-width: 370px; padding-top: 0.25rem; text-align: right; }
+.sensor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; }
+.metric-card { min-width: 0; min-height: 154px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: linear-gradient(145deg, rgba(22, 48, 72, 0.78), rgba(11, 27, 43, 0.88)); transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }.metric-card:hover { transform: translateY(-3px); border-color: var(--border-strong); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18); }
+.metric-heading { align-items: center; gap: 0.5rem; }.metric-icon { display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border: 1px solid rgba(105, 183, 255, 0.32); border-radius: 7px; background: rgba(105, 183, 255, 0.1); color: var(--telemetry); font-size: 0.95rem; }.metric-heading h3 { color: var(--muted); }
+.metric-value { display: flex; align-items: baseline; gap: 0.38rem; min-height: 2.8rem; margin: 1.05rem 0 0.5rem; color: var(--text); font-size: clamp(1.35rem, 2.4vw, 2.1rem); font-weight: 850; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; }.metric-unit { color: var(--muted); font-size: 0.8rem; font-weight: 750; letter-spacing: 0; }.metric-value--status { color: var(--telemetry); font-size: 1.3rem; letter-spacing: -0.025em; }.metric-availability { margin: 0; color: var(--subtle); font-size: 0.68rem; letter-spacing: 0.08em; }.charging-card { border-color: rgba(105, 183, 255, 0.35); }.charging-card .metric-icon { color: var(--warning); border-color: rgba(246, 185, 76, 0.38); background: rgba(246, 185, 76, 0.09); }
+.sensor-card--alert { border-color: var(--warning); background: linear-gradient(145deg, rgba(246, 185, 76, 0.16), rgba(11, 27, 43, 0.9)); box-shadow: inset 3px 0 0 var(--warning); }.status-card--critical ~ .telemetry-section .sensor-card--alert { border-color: var(--critical); box-shadow: inset 3px 0 0 var(--critical); }
+
+.diagnostics-panel { margin-top: 1.25rem; padding: 1.25rem; transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }.diagnostics-grid { display: grid; grid-template-columns: 1fr 1.4fr 2fr; gap: 0.85rem; }.diagnostic-detail, .diagnostic-warnings { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-muted); }.diagnostic-detail strong { display: block; margin-top: 0.6rem; color: var(--text); font-size: 1rem; line-height: 1.35; }.diagnostic-warnings > p { margin-bottom: 0.55rem; }.warning-list { display: grid; gap: 0.45rem; margin: 0; padding-left: 1.25rem; color: var(--muted); line-height: 1.4; }.warning-list--clear { padding-left: 0; list-style: none; color: var(--healthy); font-weight: 750; }.warnings-card--active { border-color: rgba(255, 111, 114, 0.62); background: linear-gradient(135deg, var(--critical-bg), var(--surface)); }.warnings-card--active .warning-list { color: #ffd2d3; font-weight: 700; }
+.data-context { justify-content: flex-end; gap: 1rem; margin: 0.85rem 0 0; color: var(--subtle); font-size: 0.77rem; }.data-context span { padding: 0.38rem 0.65rem; border: 1px solid var(--border); border-radius: 999px; background: rgba(11, 27, 43, 0.62); }.data-context strong { margin-left: 0.3rem; color: var(--muted); font-weight: 700; }
+
+.history-section { margin-top: 1.25rem; padding: 1.25rem; }.history-heading { margin-bottom: 1rem; }.history-status { margin: 0; color: var(--muted); font-size: 0.86rem; text-align: right; }.history-table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }.history-table { width: 100%; min-width: 1180px; border-collapse: collapse; font-size: 0.84rem; }.history-table th, .history-table td { padding: 0.82rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }.history-table th { background: rgba(4, 14, 25, 0.82); color: var(--subtle); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }.history-table tr:last-child td { border-bottom: 0; }.history-table tbody tr { transition: background-color 150ms ease; }.history-table tbody tr:hover { background: rgba(105, 183, 255, 0.06); }.history-message { color: var(--muted); text-align: center !important; }.history-message--error { color: var(--critical); }
+.status-badge { display: inline-block; padding: 0.25rem 0.55rem; border-radius: 999px; background: rgba(158, 180, 198, 0.12); color: var(--muted); font-size: 0.72rem; font-weight: 800; white-space: nowrap; }.status-badge--normal { background: var(--healthy-bg); color: var(--healthy); }.status-badge--warning { background: var(--warning-bg); color: var(--warning); }.status-badge--critical { background: var(--critical-bg); color: var(--critical); }
+
+.history-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; margin-top: 1rem; }.chart-card { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-muted); }.chart-card h3 { margin: 0 0 0.8rem; color: #d9e9f7; font-size: 0.95rem; }.chart-state { margin: 0; color: var(--muted); line-height: 1.4; }.chart-canvas { position: relative; height: 280px; }.chart-canvas canvas { max-width: 100%; }
+
+@media (max-width: 1100px) { .sensor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.diagnostics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.diagnostic-warnings { grid-column: span 2; } }
+@media (max-width: 720px) { .dashboard-container { width: min(100% - 1.25rem, 1440px); padding-top: 1.25rem; }.dashboard-header, .health-hero, .section-heading { align-items: flex-start; flex-direction: column; }.connection-panel { width: 100%; }.health-hero { gap: 1.2rem; }.health-diagnosis { width: 100%; }.section-note, .history-status { text-align: left; }.history-charts { grid-template-columns: 1fr; }.data-context { justify-content: flex-start; flex-wrap: wrap; } }
+@media (max-width: 480px) { .sensor-grid, .diagnostics-grid { grid-template-columns: 1fr; }.diagnostic-warnings { grid-column: span 1; }.metric-card { min-height: 142px; }.chart-canvas { height: 235px; }.brand-mark { width: 2.8rem; height: 2.8rem; }.data-context { gap: 0.45rem; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

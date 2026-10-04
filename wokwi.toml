@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = 'build/Real-Time-Monitoring-Diagnosis-of-Electric-Vehicle-Performance.ino.bin'
+elf = 'build/Real-Time-Monitoring-Diagnosis-of-Electric-Vehicle-Performance.ino.elf'
