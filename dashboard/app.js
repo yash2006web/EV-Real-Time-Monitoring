@@ -1,46 +1,7 @@
 // Firebase Web SDK modules are loaded from Firebase's CDN, so npm is not needed.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import {
-  getDatabase,
-  get,
-  limitToLast,
-  onValue,
-  orderByChild,
-  query,
-  ref,
-  set,
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+import { getDatabase, get, limitToLast, onValue, orderByChild, query, ref, set } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
-const connectionState = document.getElementById("connectionState");
-const connectionDot = document.getElementById("connectionDot");
-const lastUpdated = document.getElementById("lastUpdated");
-const historyStatus = document.getElementById("historyStatus");
-const historyTableBody = document.getElementById("historyTableBody");
-const chartElements = {
-  batteryPerformance: {
-    canvas: document.getElementById("batteryPerformanceChart"),
-    container: document.getElementById("batteryPerformanceChartContainer"),
-    state: document.getElementById("batteryPerformanceChartState"),
-  },
-  temperature: {
-    canvas: document.getElementById("temperatureChart"),
-    container: document.getElementById("temperatureChartContainer"),
-    state: document.getElementById("temperatureChartState"),
-  },
-  vehiclePerformance: {
-    canvas: document.getElementById("vehiclePerformanceChart"),
-    container: document.getElementById("vehiclePerformanceChartContainer"),
-    state: document.getElementById("vehiclePerformanceChartState"),
-  },
-  tyrePressure: {
-    canvas: document.getElementById("tyrePressureChart"),
-    container: document.getElementById("tyrePressureChartContainer"),
-    state: document.getElementById("tyrePressureChartState"),
-  },
-};
-const historyCharts = {};
-
-// Firebase configuration supplied for the "EV Monitoring Dashboard" web app.
 const firebaseConfig = {
   apiKey: "AIzaSyA3M1boZm5_7Udglt2Uri8gokBBdUT5wqg",
   authDomain: "ev-real-time-monitoring.firebaseapp.com",
@@ -51,489 +12,126 @@ const firebaseConfig = {
   appId: "1:668440369165:web:1e3f60f311914cc191dd44",
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const database = getDatabase(firebaseApp);
+const database = getDatabase(initializeApp(firebaseConfig));
 const connectionTestReference = ref(database, "/EV_Monitoring/connectionTest");
 const liveMonitoringReference = ref(database, "/EV_Monitoring/live");
 const HISTORY_DISPLAY_LIMIT = 20;
-const historyMonitoringQuery = query(
-  ref(database, "/EV_Monitoring/history"),
-  orderByChild("recordedAt"),
-  limitToLast(HISTORY_DISPLAY_LIMIT),
-);
+const historyMonitoringQuery = query(ref(database, "/EV_Monitoring/history"), orderByChild("recordedAt"), limitToLast(HISTORY_DISPLAY_LIMIT));
 
+const byId = (id) => document.getElementById(id);
+const connectionState = byId("connectionState");
+const connectionDot = byId("connectionDot");
+const lastUpdated = byId("lastUpdated");
+const dataFreshness = byId("dataFreshness");
+const historyStatus = byId("historyStatus");
+const historyTableBody = byId("historyTableBody");
+const warningCount = byId("warningCount");
+const systemStatusCard = byId("systemStatusCard");
+const primaryDiagnosisCard = byId("primaryDiagnosisCard");
+const activeWarningsCard = byId("activeWarningsCard");
+const diagnosticSystemStatus = byId("diagnosticSystemStatus");
+const diagnosticPrimaryDiagnosis = byId("diagnosticPrimaryDiagnosis");
+const chargingCard = byId("chargingCard");
+const selectedSensorLabel = byId("selectedSensorLabel");
+const selectedSensorName = byId("selectedSensorName");
+const selectedSensorValue = byId("selectedSensorValue");
+const selectedSensorStatus = byId("selectedSensorStatus");
 const valueElements = {
-  batteryVoltage: document.getElementById("batteryVoltage"),
-  batteryCurrent: document.getElementById("batteryCurrent"),
-  batteryTemperature: document.getElementById("batteryTemperature"),
-  motorTemperature: document.getElementById("motorTemperature"),
-  vehicleSpeed: document.getElementById("vehicleSpeed"),
-  motorTorque: document.getElementById("motorTorque"),
-  tyrePressure: document.getElementById("tyrePressure"),
-  charging: document.getElementById("chargingStatus"),
-  systemStatus: document.getElementById("systemStatus"),
-  primaryDiagnosis: document.getElementById("primaryDiagnosis"),
-  activeWarnings: document.getElementById("activeWarnings"),
-  rtcTime: document.getElementById("rtcTime"),
-  monitoringPage: document.getElementById("monitoringPage"),
-  source: document.getElementById("dataSource"),
+  batteryVoltage: byId("batteryVoltage"), batteryCurrent: byId("batteryCurrent"), batteryTemperature: byId("batteryTemperature"), motorTemperature: byId("motorTemperature"), vehicleSpeed: byId("vehicleSpeed"), motorTorque: byId("motorTorque"), tyrePressure: byId("tyrePressure"), charging: byId("chargingStatus"), systemStatus: byId("systemStatus"), primaryDiagnosis: byId("primaryDiagnosis"), activeWarnings: byId("activeWarnings"), rtcTime: byId("rtcTime"), monitoringPage: byId("monitoringPage"), source: byId("dataSource"),
 };
-
 const unitElements = {
-  batteryVoltage: document.getElementById("batteryVoltageUnit"),
-  batteryCurrent: document.getElementById("batteryCurrentUnit"),
-  batteryTemperature: document.getElementById("batteryTemperatureUnit"),
-  motorTemperature: document.getElementById("motorTemperatureUnit"),
-  vehicleSpeed: document.getElementById("vehicleSpeedUnit"),
-  motorTorque: document.getElementById("motorTorqueUnit"),
-  tyrePressure: document.getElementById("tyrePressureUnit"),
+  batteryVoltage: byId("batteryVoltageUnit"), batteryCurrent: byId("batteryCurrentUnit"), batteryTemperature: byId("batteryTemperatureUnit"), motorTemperature: byId("motorTemperatureUnit"), vehicleSpeed: byId("vehicleSpeedUnit"), motorTorque: byId("motorTorqueUnit"), tyrePressure: byId("tyrePressureUnit"),
 };
-
-const systemStatusCard = document.getElementById("systemStatusCard");
-const primaryDiagnosisCard = document.getElementById("primaryDiagnosisCard");
-const activeWarningsCard = document.getElementById("activeWarningsCard");
-const diagnosticSystemStatus = document.getElementById("diagnosticSystemStatus");
-const diagnosticPrimaryDiagnosis = document.getElementById("diagnosticPrimaryDiagnosis");
-
-// These associations use only firmware-generated warning text; no browser thresholds are added.
-const sensorCards = {
-  "LOW BATTERY VOLTAGE": document.getElementById("batteryVoltageCard"),
-  OVERCURRENT: document.getElementById("batteryCurrentCard"),
-  "HIGH BATTERY TEMPERATURE": document.getElementById("batteryTemperatureCard"),
-  "HIGH MOTOR TEMPERATURE": document.getElementById("motorTemperatureCard"),
-  OVERSPEED: document.getElementById("vehicleSpeedCard"),
-  "HIGH MOTOR TORQUE": document.getElementById("motorTorqueCard"),
-  "LOW TYRE PRESSURE": document.getElementById("tyrePressureCard"),
+const sensorMeta = {
+  batteryVoltage: { name: "Battery Voltage", unit: "V", warning: "LOW BATTERY VOLTAGE" },
+  batteryCurrent: { name: "Battery Current", unit: "A", warning: "OVERCURRENT" },
+  batteryTemperature: { name: "Battery Temperature", unit: "°C", warning: "HIGH BATTERY TEMPERATURE" },
+  motorTemperature: { name: "Motor Temperature", unit: "°C", warning: "HIGH MOTOR TEMPERATURE" },
+  vehicleSpeed: { name: "Vehicle Speed", unit: "km/h", warning: "OVERSPEED" },
+  motorTorque: { name: "Motor Torque", unit: "Nm", warning: "HIGH MOTOR TORQUE" },
+  tyrePressure: { name: "Tyre Pressure", unit: "PSI", warning: "LOW TYRE PRESSURE" },
 };
+const sensorCards = Object.fromEntries(Object.entries(sensorMeta).map(([key, meta]) => [meta.warning, byId(`${key}Card`)]));
+const chartElements = {
+  batteryPerformance: { canvas: byId("batteryPerformanceChart"), container: byId("batteryPerformanceChartContainer"), state: byId("batteryPerformanceChartState") },
+  temperature: { canvas: byId("temperatureChart"), container: byId("temperatureChartContainer"), state: byId("temperatureChartState") },
+  vehiclePerformance: { canvas: byId("vehiclePerformanceChart"), container: byId("vehiclePerformanceChartContainer"), state: byId("vehiclePerformanceChartState") },
+  tyrePressure: { canvas: byId("tyrePressureChart"), container: byId("tyrePressureChartContainer"), state: byId("tyrePressureChartState") },
+};
+const historyCharts = {};
+let currentLiveData = null;
+let selectedSensorKey = null;
+let allHistoryRecords = [];
+let historyRange = 20;
+let lastLiveReceivedAt = null;
+const visibleSeries = Object.fromEntries(Object.keys(sensorMeta).map((key) => [key, true]));
 
-function showConnectionState(message, state) {
-  connectionState.textContent = message;
-  connectionDot.classList.remove("status-dot--pending", "status-dot--connected", "status-dot--error");
-  connectionDot.classList.add(`status-dot--${state}`);
-}
+function readableError(error) { return error.code || error.message || "Unknown Firebase error"; }
+function validNumber(value) { return typeof value === "number" && Number.isFinite(value); }
+function displayText(element, value, fallback = "Unavailable") { element.textContent = value === null || value === undefined || value === "" ? fallback : value; }
+function displayNumber(key, value) { const { unit } = sensorMeta[key]; valueElements[key].textContent = validNumber(value) ? value.toFixed(1) : "Unavailable"; unitElements[key].textContent = validNumber(value) ? unit : ""; }
+function historyNumber(value, unit) { return validNumber(value) ? `${value.toFixed(1)} ${unit}` : "Unavailable"; }
+function historyText(value) { return value === null || value === undefined || value === "" ? "Unavailable" : String(value); }
+function historyTime(record) { if (typeof record.rtcTime === "string" && record.rtcTime.trim() && record.rtcTime.toUpperCase() !== "UNAVAILABLE") return record.rtcTime; const timestamp = Number(record.recordedAt); return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString() : "Unavailable"; }
+function historyCharging(value) { return value === true ? "Charging" : value === false ? "Not Charging" : "Unavailable"; }
+function warningItems(warnings) { return Array.isArray(warnings) ? warnings.filter((item) => typeof item === "string" && item.trim()) : typeof warnings === "string" && warnings.trim() ? [warnings] : []; }
+function statusClass(status) { const value = typeof status === "string" ? status.toUpperCase() : ""; return value === "NORMAL" ? "status-badge--normal" : value === "WARNING" ? "status-badge--warning" : value === "CRITICAL" ? "status-badge--critical" : ""; }
 
-function readableError(error) {
-  return error.code || error.message || "Unknown Firebase error";
-}
+function showConnectionState(message, state) { connectionState.textContent = message; connectionDot.classList.remove("status-dot--pending", "status-dot--connected", "status-dot--error"); connectionDot.classList.add(`status-dot--${state}`); }
+function updateFreshness() { const seconds = lastLiveReceivedAt ? Math.floor((Date.now() - lastLiveReceivedAt) / 1000) : null; dataFreshness.classList.remove("freshness-state--waiting", "freshness-state--stale"); if (seconds === null) { dataFreshness.textContent = "WAITING · No recent live data"; dataFreshness.classList.add("freshness-state--waiting"); } else if (seconds > 10) { dataFreshness.textContent = `STALE · Updated ${seconds} seconds ago`; dataFreshness.classList.add("freshness-state--stale"); } else { dataFreshness.textContent = `LIVE · Updated ${seconds} second${seconds === 1 ? "" : "s"} ago`; } }
 
-function displayText(element, value, unavailableText = "Unavailable") {
-  element.textContent = value === null || value === undefined || value === "" ? unavailableText : value;
-}
-
-function displayNumber(element, unitElement, value, unit) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    element.textContent = "Unavailable";
-    unitElement.textContent = "";
-    return;
-  }
-  element.textContent = value.toFixed(1);
-  unitElement.textContent = unit;
-}
-
-function updateDiagnosticsPanel(liveData) {
-  const waitingText = "Waiting for Firebase data";
-  const systemStatus = liveData.systemStatus;
-  const primaryDiagnosis = liveData.primaryDiagnosis;
-
-  diagnosticSystemStatus.textContent =
-    typeof systemStatus === "string" && systemStatus.trim() !== "" ? systemStatus : waitingText;
-  diagnosticPrimaryDiagnosis.textContent =
-    typeof primaryDiagnosis === "string" && primaryDiagnosis.trim() !== "" ? primaryDiagnosis : waitingText;
+function updateFocus() {
+  document.querySelectorAll(".metric-card").forEach((card) => card.classList.toggle("metric-card--selected", card.dataset.sensor === selectedSensorKey));
+  if (!selectedSensorKey || !currentLiveData) { selectedSensorLabel.textContent = "SELECT A SENSOR"; selectedSensorName.textContent = "Click a telemetry card"; selectedSensorValue.textContent = "—"; selectedSensorStatus.textContent = "Inspect its live reading and status here."; return; }
+  const meta = sensorMeta[selectedSensorKey]; const value = currentLiveData[selectedSensorKey]; const warnings = warningItems(currentLiveData.activeWarnings);
+  selectedSensorLabel.textContent = "SELECTED SENSOR"; selectedSensorName.textContent = meta.name; selectedSensorValue.textContent = validNumber(value) ? `${value.toFixed(1)} ${meta.unit}` : "Unavailable"; selectedSensorStatus.textContent = warnings.includes(meta.warning) ? meta.warning : "Normal";
 }
 
 function displayWarnings(warnings) {
-  const warningItems = Array.isArray(warnings)
-    ? warnings.filter((warning) => typeof warning === "string" && warning.trim() !== "")
-    : typeof warnings === "string" && warnings.trim() !== ""
-      ? [warnings]
-      : [];
-
-  valueElements.activeWarnings.replaceChildren();
-  valueElements.activeWarnings.classList.toggle("warning-list--clear", warningItems.length === 0);
-  activeWarningsCard.classList.toggle("warnings-card--active", warningItems.length > 0);
-
-  const itemsToDisplay = warningItems.length > 0 ? warningItems : ["✓ No active warnings"];
-  for (const warning of itemsToDisplay) {
-    const warningItem = document.createElement("li");
-    warningItem.textContent = warning;
-    valueElements.activeWarnings.append(warningItem);
-  }
-
-  return warningItems;
+  const warningsList = warningItems(warnings); valueElements.activeWarnings.replaceChildren(); valueElements.activeWarnings.classList.toggle("warning-list--clear", warningsList.length === 0); activeWarningsCard.classList.toggle("warnings-card--active", warningsList.length > 0);
+  (warningsList.length ? warningsList : ["No active warnings"]).forEach((warning) => { const item = document.createElement("li"); item.textContent = warning; valueElements.activeWarnings.append(item); });
+  warningCount.textContent = `${warningsList.length} Active Warning${warningsList.length === 1 ? "" : "s"}`; return warningsList;
+}
+function updateDiagnosisVisuals(status, warnings) {
+  const upper = typeof status === "string" ? status.toUpperCase() : ""; systemStatusCard.classList.remove("status-card--normal", "status-card--warning", "status-card--critical"); primaryDiagnosisCard.classList.remove("diagnosis-card--warning", "diagnosis-card--critical"); if (["NORMAL", "WARNING", "CRITICAL"].includes(upper)) systemStatusCard.classList.add(`status-card--${upper.toLowerCase()}`); if (upper === "WARNING" || upper === "CRITICAL") primaryDiagnosisCard.classList.add(`diagnosis-card--${upper.toLowerCase()}`);
+  Object.values(sensorCards).forEach((card) => card.classList.remove("metric-card--alert", "metric-card--critical")); Object.entries(sensorCards).forEach(([warning, card]) => { if (warnings.includes(warning)) card.classList.add(upper === "CRITICAL" ? "metric-card--critical" : "metric-card--alert"); });
+  Object.entries(sensorMeta).forEach(([key, meta]) => { const indicator = byId(`${key}Availability`); indicator.textContent = warnings.includes(meta.warning) ? meta.warning : "Normal"; });
+}
+function updateLiveDashboard(data) {
+  currentLiveData = data; Object.keys(sensorMeta).forEach((key) => displayNumber(key, data[key])); valueElements.charging.textContent = typeof data.charging === "boolean" ? data.charging ? "CHARGING" : "NOT CHARGING" : "Unavailable"; chargingCard.classList.toggle("charging-card--active", data.charging === true);
+  displayText(valueElements.systemStatus, data.systemStatus, "Waiting for Firebase data"); displayText(valueElements.primaryDiagnosis, data.primaryDiagnosis, "Waiting for Firebase data"); displayText(diagnosticSystemStatus, data.systemStatus, "Waiting for Firebase data"); displayText(diagnosticPrimaryDiagnosis, data.primaryDiagnosis, "Waiting for Firebase data"); const warnings = displayWarnings(data.activeWarnings); updateDiagnosisVisuals(data.systemStatus, warnings); displayText(valueElements.rtcTime, data.rtcTime); displayText(valueElements.monitoringPage, data.monitoringPage); displayText(valueElements.source, data.source);
+  lastLiveReceivedAt = Date.now(); lastUpdated.textContent = new Date(lastLiveReceivedAt).toLocaleTimeString(); updateFreshness(); updateFocus();
 }
 
-function updateDiagnosisVisuals(systemStatus, warnings) {
-  const status = typeof systemStatus === "string" ? systemStatus.toUpperCase() : "";
-  const statusClasses = ["status-card--normal", "status-card--warning", "status-card--critical"];
-  const diagnosisClasses = ["diagnosis-card--warning", "diagnosis-card--critical"];
-  const statusClass =
-    status === "NORMAL"
-      ? "status-card--normal"
-      : status === "WARNING"
-        ? "status-card--warning"
-        : status === "CRITICAL"
-          ? "status-card--critical"
-          : null;
-
-  systemStatusCard.classList.remove(...statusClasses);
-  primaryDiagnosisCard.classList.remove(...diagnosisClasses);
-  if (statusClass) {
-    systemStatusCard.classList.add(statusClass);
-  }
-  if (status === "WARNING") {
-    primaryDiagnosisCard.classList.add("diagnosis-card--warning");
-  } else if (status === "CRITICAL") {
-    primaryDiagnosisCard.classList.add("diagnosis-card--critical");
-  }
-
-  Object.values(sensorCards).forEach((card) => card.classList.remove("sensor-card--alert"));
-  warnings.forEach((warning) => sensorCards[warning]?.classList.add("sensor-card--alert"));
-}
-
-function updateLiveDashboard(liveData) {
-  displayNumber(valueElements.batteryVoltage, unitElements.batteryVoltage, liveData.batteryVoltage, "V");
-  displayNumber(valueElements.batteryCurrent, unitElements.batteryCurrent, liveData.batteryCurrent, "A");
-  displayNumber(valueElements.batteryTemperature, unitElements.batteryTemperature, liveData.batteryTemperature, "\u00b0C");
-  displayNumber(valueElements.motorTemperature, unitElements.motorTemperature, liveData.motorTemperature, "\u00b0C");
-  displayNumber(valueElements.vehicleSpeed, unitElements.vehicleSpeed, liveData.vehicleSpeed, "km/h");
-  displayNumber(valueElements.motorTorque, unitElements.motorTorque, liveData.motorTorque, "Nm");
-  displayNumber(valueElements.tyrePressure, unitElements.tyrePressure, liveData.tyrePressure, "PSI");
-
-  if (typeof liveData.charging === "boolean") {
-    valueElements.charging.textContent = liveData.charging ? "CHARGING" : "NOT CHARGING";
-  } else {
-    valueElements.charging.textContent = "Unavailable";
-  }
-
-  displayText(valueElements.systemStatus, liveData.systemStatus);
-  displayText(valueElements.primaryDiagnosis, liveData.primaryDiagnosis);
-  updateDiagnosticsPanel(liveData);
-  const warnings = displayWarnings(liveData.activeWarnings);
-  updateDiagnosisVisuals(liveData.systemStatus, warnings);
-  displayText(valueElements.rtcTime, liveData.rtcTime);
-  displayText(valueElements.monitoringPage, liveData.monitoringPage);
-  displayText(valueElements.source, liveData.source);
-
-  const receivedAt = new Date();
-  lastUpdated.textContent = Number.isNaN(receivedAt.getTime())
-    ? "Unavailable"
-    : receivedAt.toLocaleTimeString();
-}
-
-function historyNumber(value, unit) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? `${value.toFixed(1)} ${unit}`
-    : "Unavailable";
-}
-
-function historyText(value) {
-  return value === null || value === undefined || value === "" ? "Unavailable" : String(value);
-}
-
-function historyTime(record) {
-  if (typeof record.rtcTime === "string" && record.rtcTime.trim() !== "" &&
-      record.rtcTime.toUpperCase() !== "UNAVAILABLE") {
-    return record.rtcTime;
-  }
-
-  const timestamp = Number(record.recordedAt);
-  return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString() : "Unavailable";
-}
-
-function historyCharging(value) {
-  if (value === true) {
-    return "Charging";
-  }
-  if (value === false) {
-    return "Not Charging";
-  }
-  return "Unavailable";
-}
-
-function historyStatusClass(value) {
-  switch (typeof value === "string" ? value.toUpperCase() : "") {
-    case "NORMAL":
-      return "status-badge--normal";
-    case "WARNING":
-      return "status-badge--warning";
-    case "CRITICAL":
-      return "status-badge--critical";
-    default:
-      return "";
-  }
-}
-
-function appendHistoryCell(row, value) {
-  const cell = document.createElement("td");
-  cell.textContent = value;
-  row.append(cell);
-}
-
-function showHistoryMessage(message, isError = false) {
-  historyTableBody.replaceChildren();
-  const row = document.createElement("tr");
-  const cell = document.createElement("td");
-  cell.colSpan = 11;
-  cell.className = `history-message${isError ? " history-message--error" : ""}`;
-  cell.textContent = message;
-  row.append(cell);
-  historyTableBody.append(row);
-}
-
-function getMostRecentHistoryRecords(historyData) {
-  return Object.entries(historyData || {})
-    .map(([key, record]) => ({
-      key,
-      record: record && typeof record === "object" ? record : {},
-      recordedAt: Number(record?.recordedAt),
-    }))
-    .sort((first, second) => {
-      const firstTime = Number.isFinite(first.recordedAt) ? first.recordedAt : -Infinity;
-      const secondTime = Number.isFinite(second.recordedAt) ? second.recordedAt : -Infinity;
-      return secondTime - firstTime || second.key.localeCompare(first.key);
-    })
-    .slice(0, HISTORY_DISPLAY_LIMIT);
-}
-
-function renderHistoryTable(records) {
-  if (records.length === 0) {
-    historyStatus.textContent = "No historical data available";
-    showHistoryMessage("No historical data available");
-    return;
-  }
-
-  historyTableBody.replaceChildren();
-  for (const { record } of records) {
-    const row = document.createElement("tr");
-    appendHistoryCell(row, historyTime(record));
-    appendHistoryCell(row, historyNumber(record.batteryVoltage, "V"));
-    appendHistoryCell(row, historyNumber(record.batteryCurrent, "A"));
-    appendHistoryCell(row, historyNumber(record.batteryTemperature, "\u00b0C"));
-    appendHistoryCell(row, historyNumber(record.motorTemperature, "\u00b0C"));
-    appendHistoryCell(row, historyNumber(record.vehicleSpeed, "km/h"));
-    appendHistoryCell(row, historyNumber(record.motorTorque, "Nm"));
-    appendHistoryCell(row, historyNumber(record.tyrePressure, "PSI"));
-    appendHistoryCell(row, historyCharging(record.charging));
-
-    const statusCell = document.createElement("td");
-    const statusBadge = document.createElement("span");
-    statusBadge.className = `status-badge ${historyStatusClass(record.systemStatus)}`.trim();
-    statusBadge.textContent = historyText(record.systemStatus);
-    statusCell.append(statusBadge);
-    row.append(statusCell);
-
-    appendHistoryCell(row, historyText(record.primaryDiagnosis));
-    historyTableBody.append(row);
-  }
-  historyStatus.textContent = `Showing ${records.length} most recent record${records.length === 1 ? "" : "s"}`;
-}
-
-function validHistoryNumber(value) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
+function getMostRecentHistoryRecords(historyData) { return Object.entries(historyData || {}).map(([key, record]) => ({ key, record: record && typeof record === "object" ? record : {}, recordedAt: Number(record?.recordedAt) })).sort((a, b) => (Number.isFinite(b.recordedAt) ? b.recordedAt : -Infinity) - (Number.isFinite(a.recordedAt) ? a.recordedAt : -Infinity) || b.key.localeCompare(a.key)).slice(0, HISTORY_DISPLAY_LIMIT); }
+function selectedHistoryRecords() { return allHistoryRecords.slice(0, historyRange); }
+function showHistoryMessage(message, isError = false) { historyTableBody.replaceChildren(); const row = document.createElement("tr"); const cell = document.createElement("td"); cell.colSpan = 11; cell.className = `history-message${isError ? " history-message--error" : ""}`; cell.textContent = message; row.append(cell); historyTableBody.append(row); }
+function appendCell(row, value) { const cell = document.createElement("td"); cell.textContent = value; row.append(cell); }
+function renderHistoryTable(records) { if (!records.length) { historyStatus.textContent = "No historical data available"; showHistoryMessage("No historical data available"); return; } historyTableBody.replaceChildren(); for (const { record } of records) { const row = document.createElement("tr"); appendCell(row, historyTime(record)); appendCell(row, historyNumber(record.batteryVoltage, "V")); appendCell(row, historyNumber(record.batteryCurrent, "A")); appendCell(row, historyNumber(record.batteryTemperature, "°C")); appendCell(row, historyNumber(record.motorTemperature, "°C")); appendCell(row, historyNumber(record.vehicleSpeed, "km/h")); appendCell(row, historyNumber(record.motorTorque, "Nm")); appendCell(row, historyNumber(record.tyrePressure, "PSI")); appendCell(row, historyCharging(record.charging)); const status = document.createElement("td"); const badge = document.createElement("span"); badge.className = `status-badge ${statusClass(record.systemStatus)}`; badge.textContent = historyText(record.systemStatus); status.append(badge); row.append(status); appendCell(row, historyText(record.primaryDiagnosis)); historyTableBody.append(row); } historyStatus.textContent = `Showing ${records.length} most recent record${records.length === 1 ? "" : "s"}`; }
+function numbers(records, field) { return records.map(({ record }) => record[field]).filter(validNumber); }
+function statistic(records, field, operation, unit) { const values = numbers(records, field); if (!values.length) return "Unavailable"; const result = operation === "max" ? Math.max(...values) : values.reduce((sum, value) => sum + value, 0) / values.length; return `${result.toFixed(1)} ${unit}`; }
+function renderAnalysis(records) { byId("averageBatteryVoltage").textContent = statistic(records, "batteryVoltage", "average", "V"); byId("maxBatteryCurrent").textContent = statistic(records, "batteryCurrent", "max", "A"); byId("maxMotorTemperature").textContent = statistic(records, "motorTemperature", "max", "°C"); byId("averageVehicleSpeed").textContent = statistic(records, "vehicleSpeed", "average", "km/h"); byId("warningRecords").textContent = records.filter(({ record }) => ["WARNING", "CRITICAL"].includes(String(record.systemStatus).toUpperCase())).length; }
 
 const chartDefinitions = {
-  batteryPerformance: {
-    fields: [
-      { key: "batteryVoltage", label: "Battery Voltage (V)", color: "#36d399", axis: "voltage" },
-      { key: "batteryCurrent", label: "Battery Current (A)", color: "#60a5fa", axis: "current" },
-    ],
-    axes: {
-      voltage: { title: "Battery Voltage (V)", position: "left" },
-      current: { title: "Battery Current (A)", position: "right" },
-    },
-  },
-  temperature: {
-    fields: [
-      { key: "batteryTemperature", label: "Battery Temperature (°C)", color: "#f6c453", axis: "temperature" },
-      { key: "motorTemperature", label: "Motor Temperature (°C)", color: "#ff8a8a", axis: "temperature" },
-    ],
-    axes: {
-      temperature: { title: "Temperature (°C)", position: "left" },
-    },
-  },
-  vehiclePerformance: {
-    fields: [
-      { key: "vehicleSpeed", label: "Vehicle Speed (km/h)", color: "#a78bfa", axis: "speed" },
-      { key: "motorTorque", label: "Motor Torque (Nm)", color: "#f97316", axis: "torque" },
-    ],
-    axes: {
-      speed: { title: "Vehicle Speed (km/h)", position: "left" },
-      torque: { title: "Motor Torque (Nm)", position: "right" },
-    },
-  },
-  tyrePressure: {
-    fields: [
-      { key: "tyrePressure", label: "Tyre Pressure (PSI)", color: "#22d3ee", axis: "pressure" },
-    ],
-    axes: {
-      pressure: { title: "Tyre Pressure (PSI)", position: "left" },
-    },
-  },
+  batteryPerformance: { fields: [{ key: "batteryVoltage", label: "Battery Voltage (V)", color: "#35d596", axis: "voltage" }, { key: "batteryCurrent", label: "Battery Current (A)", color: "#67b9ff", axis: "current" }], axes: { voltage: ["Battery Voltage (V)", "left"], current: ["Battery Current (A)", "right"] } },
+  temperature: { fields: [{ key: "batteryTemperature", label: "Battery Temperature (°C)", color: "#f4b84c", axis: "temperature" }, { key: "motorTemperature", label: "Motor Temperature (°C)", color: "#ff6d73", axis: "temperature" }], axes: { temperature: ["Temperature (°C)", "left"] } },
+  vehiclePerformance: { fields: [{ key: "vehicleSpeed", label: "Vehicle Speed (km/h)", color: "#a78bfa", axis: "speed" }, { key: "motorTorque", label: "Motor Torque (Nm)", color: "#f97316", axis: "torque" }], axes: { speed: ["Vehicle Speed (km/h)", "left"], torque: ["Motor Torque (Nm)", "right"] } },
+  tyrePressure: { fields: [{ key: "tyrePressure", label: "Tyre Pressure (PSI)", color: "#22d3ee", axis: "pressure" }], axes: { pressure: ["Tyre Pressure (PSI)", "left"] } },
 };
+function destroyChart(key) { if (historyCharts[key]) { historyCharts[key].destroy(); delete historyCharts[key]; } }
+function setChartMessage(key, message) { const element = chartElements[key]; destroyChart(key); element.state.textContent = message; element.state.hidden = false; element.container.hidden = true; }
+function updateHistoryChart(key, chronologicalRecords) { const definition = chartDefinitions[key]; const element = chartElements[key]; const availableFields = definition.fields.filter((field) => visibleSeries[field.key]); const validRecords = chronologicalRecords.filter(({ record }) => availableFields.some((field) => validNumber(record[field.key]))); if (!availableFields.length) { setChartMessage(key, "All datasets are hidden by Dashboard Controls"); return; } if (validRecords.length < 2) { setChartMessage(key, "Not enough historical data for chart"); return; } if (!window.Chart) { setChartMessage(key, "Chart library failed to load"); return; }
+  const scales = { x: { title: { display: true, text: "Time", color: "#9bb1c3" }, ticks: { color: "#9bb1c3", maxRotation: 45 }, grid: { color: "#29496366" } } }; Object.entries(definition.axes).forEach(([axis, [title, position]]) => { scales[axis] = { type: "linear", position, title: { display: true, text: title, color: "#9bb1c3" }, ticks: { color: "#9bb1c3" }, grid: { color: "#29496366", drawOnChartArea: position !== "right" } }; });
+  destroyChart(key); element.state.hidden = true; element.container.hidden = false; historyCharts[key] = new window.Chart(element.canvas, { type: "line", data: { labels: validRecords.map(({ record }) => historyTime(record)), datasets: availableFields.map((field) => ({ label: field.label, data: validRecords.map(({ record }) => validNumber(record[field.key]) ? record[field.key] : null), borderColor: field.color, backgroundColor: field.color, yAxisID: field.axis, borderWidth: 2.5, pointRadius: 2.5, pointHoverRadius: 5, tension: .28, spanGaps: false })) }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { labels: { color: "#eef7ff", usePointStyle: true } }, tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y}` } } }, scales } }); }
+function renderHistoryCharts(records) { const chronological = [...records].reverse(); Object.keys(chartDefinitions).forEach((key) => updateHistoryChart(key, chronological)); }
+function renderHistoryView() { const records = selectedHistoryRecords(); renderHistoryTable(records); renderAnalysis(records); renderHistoryCharts(records); }
 
-function destroyHistoryChart(chartKey) {
-  if (historyCharts[chartKey]) {
-    historyCharts[chartKey].destroy();
-    delete historyCharts[chartKey];
-  }
-}
+function startHistoryListener() { onValue(historyMonitoringQuery, (snapshot) => { allHistoryRecords = getMostRecentHistoryRecords(snapshot.val()); renderHistoryView(); }, (error) => { historyStatus.textContent = `Historical data failed: ${readableError(error)}`; showHistoryMessage(`Historical data failed: ${readableError(error)}`, true); Object.keys(chartDefinitions).forEach((key) => setChartMessage(key, "Historical chart data failed to load")); }); }
+function startLiveDataListener() { onValue(liveMonitoringReference, (snapshot) => { if (!snapshot.exists()) { showConnectionState("Firebase Connected - Waiting for live data", "connected"); return; } updateLiveDashboard(snapshot.val()); showConnectionState("Firebase Connected - Live data received", "connected"); }, (error) => { console.error("Firebase live-data listener failed:", error); showConnectionState(`Live data failed: ${readableError(error)}`, "error"); }); }
+async function runConnectionTest() { try { showConnectionState("CONNECTING TO FIREBASE...", "pending"); const data = { status: "connected", source: "dashboard", timestamp: Date.now() }; await set(connectionTestReference, data); const snapshot = await get(connectionTestReference); if (!snapshot.exists() || snapshot.val().status !== "connected" || snapshot.val().source !== "dashboard") throw new Error("Connection test data could not be verified after writing."); showConnectionState("Firebase Connected - Waiting for live data", "connected"); } catch (error) { console.error("Firebase connection test failed:", error); showConnectionState(`Connection failed: ${readableError(error)}`, "error"); } }
 
-function setChartMessage(chartKey, message) {
-  const elements = chartElements[chartKey];
-  destroyHistoryChart(chartKey);
-  elements.state.textContent = message;
-  elements.state.hidden = false;
-  elements.container.hidden = true;
-}
-
-function updateHistoryChart(chartKey, chronologicalRecords) {
-  const definition = chartDefinitions[chartKey];
-  const elements = chartElements[chartKey];
-  const validRecords = chronologicalRecords.filter(({ record }) =>
-    definition.fields.some((field) => validHistoryNumber(record[field.key]) !== null),
-  );
-
-  if (validRecords.length < 2) {
-    setChartMessage(chartKey, "Not enough historical data for chart");
-    return;
-  }
-
-  if (!window.Chart) {
-    setChartMessage(chartKey, "Chart library failed to load");
-    return;
-  }
-
-  const scales = {
-    x: {
-      title: { display: true, text: "Time" },
-      ticks: { color: "#a8bbce", maxRotation: 45, minRotation: 0 },
-      grid: { color: "rgba(168, 187, 206, 0.12)" },
-    },
-  };
-  for (const [axisKey, axis] of Object.entries(definition.axes)) {
-    scales[axisKey] = {
-      type: "linear",
-      position: axis.position,
-      title: { display: true, text: axis.title },
-      ticks: { color: "#a8bbce" },
-      grid: {
-        color: "rgba(168, 187, 206, 0.12)",
-        drawOnChartArea: axis.position !== "right",
-      },
-    };
-  }
-
-  destroyHistoryChart(chartKey);
-  elements.state.hidden = true;
-  elements.container.hidden = false;
-  historyCharts[chartKey] = new window.Chart(elements.canvas, {
-    type: "line",
-    data: {
-      labels: validRecords.map(({ record }) => historyTime(record)),
-      datasets: definition.fields.map((field) => ({
-        label: field.label,
-        data: validRecords.map(({ record }) => validHistoryNumber(record[field.key])),
-        borderColor: field.color,
-        backgroundColor: field.color,
-        yAxisID: field.axis,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.25,
-        spanGaps: false,
-      })),
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: { labels: { color: "#edf6ff" } },
-        tooltip: { enabled: true },
-      },
-      scales,
-    },
-  });
-}
-
-function renderHistoryCharts(records) {
-  // The table is newest-first; charts use the same records in oldest-first order.
-  const chronologicalRecords = [...records].reverse();
-  Object.keys(chartDefinitions).forEach((chartKey) => updateHistoryChart(chartKey, chronologicalRecords));
-}
-
-function renderHistoryData(historyData) {
-  const records = getMostRecentHistoryRecords(historyData);
-  renderHistoryTable(records);
-  renderHistoryCharts(records);
-}
-
-function showHistoryChartError() {
-  Object.keys(chartDefinitions).forEach((chartKey) =>
-    setChartMessage(chartKey, "Historical chart data failed to load"),
-  );
-}
-
-function startHistoryListener() {
-  // One listener drives both the table and charts from the same newest 20 records.
-  onValue(
-    historyMonitoringQuery,
-    (snapshot) => renderHistoryData(snapshot.val()),
-    (error) => {
-      console.error("Firebase history listener failed:", error);
-      historyStatus.textContent = `Historical data failed: ${readableError(error)}`;
-      showHistoryMessage(`Historical data failed: ${readableError(error)}`, true);
-      showHistoryChartError();
-    },
-  );
-}
-
-function startLiveDataListener() {
-  // onValue keeps this page synchronized with every change at /EV_Monitoring/live.
-  onValue(
-    liveMonitoringReference,
-    (snapshot) => {
-      if (!snapshot.exists()) {
-        showConnectionState("Firebase Connected - Waiting for live data", "connected");
-        return;
-      }
-
-      updateLiveDashboard(snapshot.val());
-      showConnectionState("Firebase Connected - Live data received", "connected");
-    },
-    (error) => {
-      console.error("Firebase live-data listener failed:", error);
-      showConnectionState(`Live data failed: ${readableError(error)}`, "error");
-    },
-  );
-}
-
-async function runConnectionTest() {
-  try {
-    showConnectionState("CONNECTING TO FIREBASE...", "pending");
-    const testData = {
-      status: "connected",
-      source: "dashboard",
-      timestamp: Date.now(),
-    };
-    await set(connectionTestReference, testData);
-
-    const snapshot = await get(connectionTestReference);
-    const savedData = snapshot.val();
-    if (!snapshot.exists() || savedData.status !== "connected" || savedData.source !== "dashboard") {
-      throw new Error("Connection test data could not be verified after writing.");
-    }
-
-    console.info("Firebase connection test succeeded:", savedData);
-    showConnectionState("Firebase Connected - Waiting for live data", "connected");
-  } catch (error) {
-    console.error("Firebase connection test failed:", error);
-    showConnectionState(`Connection failed: ${readableError(error)}`, "error");
-  }
-}
-
-// Keep the connection test and live listener active when the dashboard opens.
-runConnectionTest();
-startLiveDataListener();
-startHistoryListener();
+document.querySelectorAll(".metric-card").forEach((card) => card.addEventListener("click", () => { selectedSensorKey = card.dataset.sensor; updateFocus(); }));
+document.querySelectorAll("[data-range]").forEach((button) => button.addEventListener("click", () => { historyRange = Number(button.dataset.range); document.querySelectorAll("[data-range]").forEach((item) => item.classList.toggle("is-active", item === button)); renderHistoryView(); }));
+document.querySelectorAll("[data-series]").forEach((input) => input.addEventListener("change", () => { visibleSeries[input.dataset.series] = input.checked; renderHistoryCharts(selectedHistoryRecords()); }));
+setInterval(updateFreshness, 1000);
+runConnectionTest(); startLiveDataListener(); startHistoryListener();

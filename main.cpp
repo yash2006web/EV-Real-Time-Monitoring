@@ -8,6 +8,9 @@
 #include <RTClib.h>
 #include <math.h>
 
+// Set to false to read the Wokwi controls manually instead of the driving-cycle simulation.
+#define AUTO_SIMULATION true
+
 // Pin mapping verified against diagram.json.
 constexpr uint8_t BATTERY_VOLTAGE_PIN = 34;
 constexpr uint8_t BATTERY_CURRENT_PIN = 35;
@@ -73,6 +76,8 @@ WiFiClientSecure firebaseSecureClient;
 
 bool rtcAvailable = false;
 bool charging = false;
+bool manualChargingOverrideActive = false;
+bool manualChargingState = false;
 bool hasChargingStartTime = false;
 bool hasChargingEndTime = false;
 DateTime chargingStartTime;
@@ -94,13 +99,12 @@ unsigned long lastFirebaseErrorLogMs = 0;
 
 struct ButtonState {
   uint8_t pin;
-  bool stableState;
   bool lastReading;
-  unsigned long lastChangeMs;
+  unsigned long lastPressMs;
 };
 
-ButtonState startButton{CHARGING_START_BUTTON_PIN, HIGH, HIGH, 0};
-ButtonState endButton{CHARGING_END_BUTTON_PIN, HIGH, HIGH, 0};
+ButtonState startButton{CHARGING_START_BUTTON_PIN, HIGH, 0};
+ButtonState endButton{CHARGING_END_BUTTON_PIN, HIGH, 0};
 
 enum class SystemStatus { NORMAL, WARNING, CRITICAL };
 
@@ -120,6 +124,132 @@ struct MonitoringData {
   float motorTorque;
   float tyrePressure;
 };
+
+enum class AutoSimulationState {
+  STOPPED,
+  ACCELERATION,
+  CRUISING,
+  HIGH_SPEED,
+  DECELERATION,
+  CHARGING,
+};
+
+struct AutoSimulationTarget {
+  MonitoringData readings;
+  bool automaticCharging;
+  AutoSimulationState state;
+};
+
+MonitoringData automaticMonitoringData{385.0f, 4.0f, 27.0f, 30.0f, 0.0f, 5.0f, 35.0f};
+bool automaticSimulationInitialized = false;
+unsigned long lastAutomaticSimulationUpdateMs = 0;
+
+float moveTowards(float currentValue, float targetValue, float ratePerSecond, float elapsedSeconds) {
+  const float maximumChange = ratePerSecond * elapsedSeconds;
+  const float difference = targetValue - currentValue;
+  if (fabs(difference) <= maximumChange) {
+    return targetValue;
+  }
+  return currentValue + (difference > 0.0f ? maximumChange : -maximumChange);
+}
+
+AutoSimulationTarget getAutomaticSimulationTarget(unsigned long nowMs) {
+  // Each stage is deterministic. Fault stages change one diagnosis input at a time.
+  const unsigned long cycleSecond = (nowMs / 1000UL) % 330UL;
+
+  if (cycleSecond < 20UL) {
+    return {{385.0f, 4.0f, 27.0f, 30.0f, 0.0f, 5.0f, 35.0f}, false,
+            AutoSimulationState::STOPPED};
+  }
+  if (cycleSecond < 45UL) {
+    return {{375.0f, 115.0f, 30.0f, 42.0f, 90.0f, 260.0f, 35.0f}, false,
+            AutoSimulationState::ACCELERATION};
+  }
+  if (cycleSecond < 65UL) {
+    return {{380.0f, 45.0f, 32.0f, 48.0f, 100.0f, 120.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};
+  }
+  if (cycleSecond < 90UL) {
+    return {{370.0f, 72.0f, 34.0f, 55.0f, 150.0f, 135.0f, 35.0f}, false,
+            AutoSimulationState::HIGH_SPEED};  // OVERSPEED
+  }
+  if (cycleSecond < 105UL) {
+    return {{380.0f, 45.0f, 33.0f, 52.0f, 100.0f, 120.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};
+  }
+  if (cycleSecond < 130UL) {
+    return {{368.0f, 130.0f, 35.0f, 56.0f, 95.0f, 370.0f, 35.0f}, false,
+            AutoSimulationState::ACCELERATION};  // HIGH MOTOR TORQUE
+  }
+  if (cycleSecond < 145UL) {
+    return {{378.0f, 45.0f, 34.0f, 54.0f, 100.0f, 120.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};
+  }
+  if (cycleSecond < 170UL) {
+    return {{360.0f, 192.0f, 37.0f, 62.0f, 100.0f, 280.0f, 35.0f}, false,
+            AutoSimulationState::ACCELERATION};  // OVERCURRENT
+  }
+  if (cycleSecond < 185UL) {
+    return {{378.0f, 45.0f, 35.0f, 58.0f, 95.0f, 120.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};
+  }
+  if (cycleSecond < 215UL) {
+    return {{370.0f, 65.0f, 39.0f, 97.0f, 105.0f, 145.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};  // HIGH MOTOR TEMPERATURE
+  }
+  if (cycleSecond < 230UL) {
+    return {{378.0f, 45.0f, 35.0f, 58.0f, 90.0f, 110.0f, 35.0f}, false,
+            AutoSimulationState::CRUISING};
+  }
+  if (cycleSecond < 255UL) {
+    return {{378.0f, 45.0f, 34.0f, 56.0f, 80.0f, 110.0f, 22.0f}, false,
+            AutoSimulationState::CRUISING};  // LOW TYRE PRESSURE
+  }
+  if (cycleSecond < 275UL) {
+    return {{390.0f, 15.0f, 32.0f, 50.0f, 20.0f, 35.0f, 35.0f}, false,
+            AutoSimulationState::DECELERATION};
+  }
+  if (cycleSecond < 305UL) {
+    return {{425.0f, 25.0f, 29.0f, 35.0f, 0.0f, 0.0f, 35.0f}, true,
+            AutoSimulationState::CHARGING};
+  }
+  return {{385.0f, 4.0f, 27.0f, 30.0f, 0.0f, 5.0f, 35.0f}, false,
+          AutoSimulationState::STOPPED};
+}
+
+void updateAutomaticSimulation() {
+  if (!AUTO_SIMULATION) {
+    return;
+  }
+
+  const unsigned long nowMs = millis();
+  const AutoSimulationTarget target = getAutomaticSimulationTarget(nowMs);
+  if (!automaticSimulationInitialized) {
+    automaticMonitoringData = target.readings;
+    automaticSimulationInitialized = true;
+    lastAutomaticSimulationUpdateMs = nowMs;
+  } else {
+    const float elapsedSeconds = (nowMs - lastAutomaticSimulationUpdateMs) / 1000.0f;
+    automaticMonitoringData.batteryVoltage = moveTowards(
+        automaticMonitoringData.batteryVoltage, target.readings.batteryVoltage, 8.0f, elapsedSeconds);
+    automaticMonitoringData.batteryCurrent = moveTowards(
+        automaticMonitoringData.batteryCurrent, target.readings.batteryCurrent, 30.0f, elapsedSeconds);
+    automaticMonitoringData.batteryTemperature = moveTowards(
+        automaticMonitoringData.batteryTemperature, target.readings.batteryTemperature, 0.5f, elapsedSeconds);
+    automaticMonitoringData.motorTemperature = moveTowards(
+        automaticMonitoringData.motorTemperature, target.readings.motorTemperature, 3.0f, elapsedSeconds);
+    automaticMonitoringData.vehicleSpeed = moveTowards(
+        automaticMonitoringData.vehicleSpeed, target.readings.vehicleSpeed, 12.0f, elapsedSeconds);
+    automaticMonitoringData.motorTorque = moveTowards(
+        automaticMonitoringData.motorTorque, target.readings.motorTorque, 45.0f, elapsedSeconds);
+    automaticMonitoringData.tyrePressure = moveTowards(
+        automaticMonitoringData.tyrePressure, target.readings.tyrePressure, 2.0f, elapsedSeconds);
+    lastAutomaticSimulationUpdateMs = nowMs;
+  }
+
+  // A physical button press activates the manual override for the rest of this run.
+  charging = manualChargingOverrideActive ? manualChargingState : target.automaticCharging;
+}
 
 float mapAdcToRange(int adcValue, float outputMin, float outputMax) {
   const int constrainedValue = constrain(adcValue, 0, ADC_MAX_VALUE);
@@ -168,6 +298,9 @@ float readMotorTorque() {
 }
 
 MonitoringData readMonitoringData() {
+  if (AUTO_SIMULATION) {
+    return automaticMonitoringData;
+  }
   return {
       readBatteryVoltage(),
       readBatteryCurrent(),
@@ -222,21 +355,21 @@ bool wasButtonPressed(ButtonState& button) {
   const bool reading = digitalRead(button.pin);
   const unsigned long nowMs = millis();
 
-  if (reading != button.lastReading) {
-    button.lastChangeMs = nowMs;
-    button.lastReading = reading;
+  // Capture the falling edge immediately so a quick Wokwi click is not missed, then ignore
+  // any bounce/repeat edges for the debounce period.
+  const bool pressed = button.lastReading == HIGH && reading == LOW;
+  button.lastReading = reading;
+  if (!pressed || nowMs - button.lastPressMs < BUTTON_DEBOUNCE_MS) {
+    return false;
   }
-
-  if (nowMs - button.lastChangeMs >= BUTTON_DEBOUNCE_MS && reading != button.stableState) {
-    button.stableState = reading;
-    return button.stableState == LOW;
-  }
-
-  return false;
+  button.lastPressMs = nowMs;
+  return true;
 }
 
 void handleChargingButtons() {
   if (wasButtonPressed(startButton)) {
+    manualChargingOverrideActive = true;
+    manualChargingState = true;
     charging = true;
     DateTime now;
     hasChargingStartTime = getRtcNow(now);
@@ -253,6 +386,8 @@ void handleChargingButtons() {
   }
 
   if (wasButtonPressed(endButton)) {
+    manualChargingOverrideActive = true;
+    manualChargingState = false;
     charging = false;
     DateTime now;
     hasChargingEndTime = getRtcNow(now);
@@ -608,8 +743,8 @@ void setup() {
   pinMode(CHARGING_END_BUTTON_PIN, INPUT_PULLUP);
   pinMode(ENCODER_CLK_PIN, INPUT_PULLUP);
   pinMode(ENCODER_DT_PIN, INPUT_PULLUP);
-  startButton.stableState = startButton.lastReading = digitalRead(startButton.pin);
-  endButton.stableState = endButton.lastReading = digitalRead(endButton.pin);
+  startButton.lastReading = digitalRead(startButton.pin);
+  endButton.lastReading = digitalRead(endButton.pin);
   lastEncoderClkState = digitalRead(ENCODER_CLK_PIN);
 
   Wire.begin(RTC_SDA_PIN, RTC_SCL_PIN);
@@ -632,6 +767,7 @@ void setup() {
 
 void loop() {
   updateMotorTemperature();
+  updateAutomaticSimulation();
   handleChargingButtons();
   handleEncoder();
   maintainWiFiConnection();

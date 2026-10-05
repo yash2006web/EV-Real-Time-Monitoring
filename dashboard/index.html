@@ -9,170 +9,45 @@
   <body>
     <main class="dashboard-container">
       <header class="dashboard-header">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">EV</div>
-          <div>
-            <p class="eyebrow">TELEMETRY CONSOLE</p>
-            <h1>EV PERFORMANCE MONITOR</h1>
-            <p class="subtitle">Real-Time Vehicle Diagnostics &amp; Telemetry</p>
-          </div>
-        </div>
-
-        <div class="connection-panel" aria-live="polite">
-          <span class="status-dot status-dot--pending" id="connectionDot"></span>
-          <div>
-            <p class="connection-label">LIVE CONNECTION</p>
-            <p class="connection-state" id="connectionState">NOT CONFIGURED</p>
-            <p class="freshness">Last Updated <span id="lastUpdated">Unavailable</span></p>
-          </div>
-        </div>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">EV</span><div><p class="eyebrow">FLEET TELEMETRY</p><h1>EV PERFORMANCE MONITOR</h1><p class="subtitle">Real-Time Vehicle Performance &amp; Diagnostics</p></div></div>
+        <div class="connection-panel" aria-live="polite"><span class="status-dot status-dot--pending" id="connectionDot"></span><div><p class="connection-label">LIVE CONNECTION</p><p class="connection-state" id="connectionState">NOT CONFIGURED</p><p class="freshness">Last Updated <span id="lastUpdated">Unavailable</span></p><p class="freshness-state" id="dataFreshness">WAITING · No recent live data</p></div></div>
       </header>
 
       <section class="health-hero status-card" id="systemStatusCard" aria-labelledby="health-title">
-        <div>
-          <p class="eyebrow">SYSTEM HEALTH</p>
-          <h2 id="health-title">SYSTEM STATUS</h2>
-          <p class="health-status" id="systemStatus">Waiting for Firebase data</p>
-        </div>
-        <div class="health-diagnosis diagnosis-card" id="primaryDiagnosisCard">
-          <p class="health-label">PRIMARY DIAGNOSIS</p>
-          <p id="primaryDiagnosis">Waiting for Firebase data</p>
-        </div>
+        <div><p class="eyebrow">SYSTEM HEALTH</p><h2 id="health-title">VEHICLE STATUS</h2><p class="health-status" id="systemStatus">Waiting for Firebase data</p></div>
+        <div class="health-diagnosis diagnosis-card" id="primaryDiagnosisCard"><p class="health-label">PRIMARY DIAGNOSIS</p><p id="primaryDiagnosis">Waiting for Firebase data</p><p class="warning-count" id="warningCount">Waiting for warnings</p></div>
       </section>
 
       <section class="telemetry-section" aria-labelledby="telemetry-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">LIVE TELEMETRY</p>
-            <h2 id="telemetry-title">Vehicle Readings</h2>
+        <div class="section-heading"><div><p class="eyebrow">LIVE TELEMETRY</p><h2 id="telemetry-title">Vehicle Readings</h2></div><p class="section-note">Select any sensor card to inspect its current firmware-provided status.</p></div>
+        <div class="telemetry-layout">
+          <div class="sensor-grid" aria-label="EV monitoring values">
+            <button class="metric-card" id="batteryVoltageCard" data-sensor="batteryVoltage" type="button"><span class="metric-heading"><span class="metric-icon">V</span><span>Battery Voltage</span></span><span class="metric-value"><span id="batteryVoltage">Waiting for Firebase data</span><span class="metric-unit" id="batteryVoltageUnit"></span></span><span class="metric-availability" id="batteryVoltageAvailability">Normal</span></button>
+            <button class="metric-card" id="batteryCurrentCard" data-sensor="batteryCurrent" type="button"><span class="metric-heading"><span class="metric-icon">A</span><span>Battery Current</span></span><span class="metric-value"><span id="batteryCurrent">Waiting for Firebase data</span><span class="metric-unit" id="batteryCurrentUnit"></span></span><span class="metric-availability" id="batteryCurrentAvailability">Normal</span></button>
+            <button class="metric-card" id="batteryTemperatureCard" data-sensor="batteryTemperature" type="button"><span class="metric-heading"><span class="metric-icon">T</span><span>Battery Temperature</span></span><span class="metric-value"><span id="batteryTemperature">Waiting for Firebase data</span><span class="metric-unit" id="batteryTemperatureUnit"></span></span><span class="metric-availability" id="batteryTemperatureAvailability">Normal</span></button>
+            <button class="metric-card" id="motorTemperatureCard" data-sensor="motorTemperature" type="button"><span class="metric-heading"><span class="metric-icon">M</span><span>Motor Temperature</span></span><span class="metric-value"><span id="motorTemperature">Waiting for Firebase data</span><span class="metric-unit" id="motorTemperatureUnit"></span></span><span class="metric-availability" id="motorTemperatureAvailability">Normal</span></button>
+            <button class="metric-card" id="vehicleSpeedCard" data-sensor="vehicleSpeed" type="button"><span class="metric-heading"><span class="metric-icon">S</span><span>Vehicle Speed</span></span><span class="metric-value"><span id="vehicleSpeed">Waiting for Firebase data</span><span class="metric-unit" id="vehicleSpeedUnit"></span></span><span class="metric-availability" id="vehicleSpeedAvailability">Normal</span></button>
+            <button class="metric-card" id="motorTorqueCard" data-sensor="motorTorque" type="button"><span class="metric-heading"><span class="metric-icon">Q</span><span>Motor Torque</span></span><span class="metric-value"><span id="motorTorque">Waiting for Firebase data</span><span class="metric-unit" id="motorTorqueUnit"></span></span><span class="metric-availability" id="motorTorqueAvailability">Normal</span></button>
+            <button class="metric-card" id="tyrePressureCard" data-sensor="tyrePressure" type="button"><span class="metric-heading"><span class="metric-icon">P</span><span>Tyre Pressure</span></span><span class="metric-value"><span id="tyrePressure">Waiting for Firebase data</span><span class="metric-unit" id="tyrePressureUnit"></span></span><span class="metric-availability" id="tyrePressureAvailability">Normal</span></button>
           </div>
-          <p class="section-note">Updated whenever the ESP32 publishes a monitoring report.</p>
-        </div>
-
-        <div class="sensor-grid" aria-label="EV monitoring values">
-          <article class="metric-card" id="batteryVoltageCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">ϟ</span><h3>Battery Voltage</h3></div>
-            <p class="metric-value"><span id="batteryVoltage">Waiting for Firebase data</span><span class="metric-unit" id="batteryVoltageUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="batteryCurrentCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">⌁</span><h3>Battery Current</h3></div>
-            <p class="metric-value"><span id="batteryCurrent">Waiting for Firebase data</span><span class="metric-unit" id="batteryCurrentUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="batteryTemperatureCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">◒</span><h3>Battery Temperature</h3></div>
-            <p class="metric-value"><span id="batteryTemperature">Waiting for Firebase data</span><span class="metric-unit" id="batteryTemperatureUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="motorTemperatureCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">◉</span><h3>Motor Temperature</h3></div>
-            <p class="metric-value"><span id="motorTemperature">Waiting for Firebase data</span><span class="metric-unit" id="motorTemperatureUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="vehicleSpeedCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">➜</span><h3>Vehicle Speed</h3></div>
-            <p class="metric-value"><span id="vehicleSpeed">Waiting for Firebase data</span><span class="metric-unit" id="vehicleSpeedUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="motorTorqueCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">↻</span><h3>Motor Torque</h3></div>
-            <p class="metric-value"><span id="motorTorque">Waiting for Firebase data</span><span class="metric-unit" id="motorTorqueUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card" id="tyrePressureCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">◌</span><h3>Tyre Pressure</h3></div>
-            <p class="metric-value"><span id="tyrePressure">Waiting for Firebase data</span><span class="metric-unit" id="tyrePressureUnit"></span></p>
-            <p class="metric-availability">Live sensor input</p>
-          </article>
-          <article class="metric-card charging-card" id="chargingCard">
-            <div class="metric-heading"><span class="metric-icon" aria-hidden="true">⚡</span><h3>Charging Status</h3></div>
-            <p class="metric-value metric-value--status" id="chargingStatus">Waiting for Firebase data</p>
-            <p class="metric-availability">RTC <span id="rtcTime">Unavailable</span></p>
-          </article>
+          <aside class="sensor-focus" aria-live="polite"><p class="eyebrow" id="selectedSensorLabel">SELECT A SENSOR</p><h2 id="selectedSensorName">Click a telemetry card</h2><p class="focus-value" id="selectedSensorValue">—</p><p class="focus-status" id="selectedSensorStatus">Inspect its live reading and status here.</p></aside>
         </div>
       </section>
 
-      <section class="diagnostics-panel" id="activeWarningsCard" aria-labelledby="diagnostics-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">FIRMWARE DIAGNOSIS</p>
-            <h2 id="diagnostics-title">DIAGNOSTICS</h2>
-          </div>
-          <p class="section-note">Status is calculated by the ESP32 monitoring firmware.</p>
-        </div>
-        <div class="diagnostics-grid">
-          <div class="diagnostic-detail">
-            <p>Current Status</p>
-            <strong id="diagnosticSystemStatus">Waiting for Firebase data</strong>
-          </div>
-          <div class="diagnostic-detail">
-            <p>Primary Diagnosis</p>
-            <strong id="diagnosticPrimaryDiagnosis">Waiting for Firebase data</strong>
-          </div>
-          <div class="diagnostic-warnings">
-            <p>Active Warnings</p>
-            <ul class="warning-list" id="activeWarnings" aria-live="polite">
-              <li>Waiting for Firebase data</li>
-            </ul>
-          </div>
-        </div>
+      <section class="lower-live-grid">
+        <section class="charging-panel" id="chargingCard" aria-labelledby="charging-title"><p class="eyebrow">ENERGY FLOW</p><h2 id="charging-title">CHARGING STATUS</h2><p class="charging-value" id="chargingStatus">Waiting for Firebase data</p><p class="charging-rtc">RTC Time <strong id="rtcTime">Unavailable</strong></p></section>
+        <section class="diagnostics-panel" id="activeWarningsCard" aria-labelledby="diagnostics-title"><div class="section-heading"><div><p class="eyebrow">FIRMWARE DIAGNOSIS</p><h2 id="diagnostics-title">DIAGNOSTICS</h2></div><p class="section-note">Reported by the ESP32 firmware.</p></div><div class="diagnostics-grid"><div class="diagnostic-detail"><p>Current Status</p><strong id="diagnosticSystemStatus">Waiting for Firebase data</strong></div><div class="diagnostic-detail"><p>Primary Diagnosis</p><strong id="diagnosticPrimaryDiagnosis">Waiting for Firebase data</strong></div><div class="diagnostic-warnings"><p>Active Warnings</p><ul class="warning-list" id="activeWarnings"><li>Waiting for Firebase data</li></ul></div></div></section>
       </section>
-
-      <section class="data-context" aria-label="Monitoring context">
-        <span>Monitoring Page <strong id="monitoringPage">Unavailable</strong></span>
-        <span>Data Source <strong id="dataSource">Unavailable</strong></span>
-      </section>
+      <section class="data-context"><span>Monitoring Page <strong id="monitoringPage">Unavailable</strong></span><span>Data Source <strong id="dataSource">Unavailable</strong></span></section>
 
       <section class="history-section" aria-labelledby="history-title">
-        <div class="section-heading history-heading">
-          <div>
-            <p class="eyebrow">FIREBASE HISTORY</p>
-            <h2 id="history-title">Historical Data</h2>
-          </div>
-          <p class="history-status" id="historyStatus" aria-live="polite">Loading historical data...</p>
-        </div>
-
-        <div class="history-table-wrapper">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Time</th><th>Battery Voltage</th><th>Battery Current</th><th>Battery Temperature</th><th>Motor Temperature</th><th>Vehicle Speed</th><th>Motor Torque</th><th>Tyre Pressure</th><th>Charging</th><th>System Status</th><th>Primary Diagnosis</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody">
-              <tr><td colspan="11">Loading historical data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="history-charts" aria-label="Historical monitoring charts">
-          <article class="chart-card">
-            <h3>Battery Performance</h3>
-            <p class="chart-state" id="batteryPerformanceChartState" aria-live="polite">Loading historical data...</p>
-            <div class="chart-canvas" id="batteryPerformanceChartContainer" hidden><canvas id="batteryPerformanceChart" aria-label="Battery voltage and current over time"></canvas></div>
-          </article>
-          <article class="chart-card">
-            <h3>Temperature</h3>
-            <p class="chart-state" id="temperatureChartState" aria-live="polite">Loading historical data...</p>
-            <div class="chart-canvas" id="temperatureChartContainer" hidden><canvas id="temperatureChart" aria-label="Battery and motor temperature over time"></canvas></div>
-          </article>
-          <article class="chart-card">
-            <h3>Vehicle Performance</h3>
-            <p class="chart-state" id="vehiclePerformanceChartState" aria-live="polite">Loading historical data...</p>
-            <div class="chart-canvas" id="vehiclePerformanceChartContainer" hidden><canvas id="vehiclePerformanceChart" aria-label="Vehicle speed and motor torque over time"></canvas></div>
-          </article>
-          <article class="chart-card">
-            <h3>Tyre Pressure</h3>
-            <p class="chart-state" id="tyrePressureChartState" aria-live="polite">Loading historical data...</p>
-            <div class="chart-canvas" id="tyrePressureChartContainer" hidden><canvas id="tyrePressureChart" aria-label="Tyre pressure over time"></canvas></div>
-          </article>
-        </div>
+        <div class="section-heading history-heading"><div><p class="eyebrow">FIREBASE HISTORY</p><h2 id="history-title">Historical Analysis</h2></div><p class="history-status" id="historyStatus" aria-live="polite">Loading historical data...</p></div>
+        <section class="dashboard-controls" aria-labelledby="controls-title"><div><p class="eyebrow" id="controls-title">DASHBOARD CONTROLS</p><div class="range-buttons" role="group" aria-label="Historical range"><button type="button" data-range="20" class="is-active">Last 20</button><button type="button" data-range="10">Last 10</button><button type="button" data-range="5">Last 5</button></div></div><fieldset class="visibility-controls"><legend>Chart datasets</legend><label><input type="checkbox" data-series="batteryVoltage" checked /> Battery Voltage</label><label><input type="checkbox" data-series="batteryCurrent" checked /> Battery Current</label><label><input type="checkbox" data-series="batteryTemperature" checked /> Battery Temperature</label><label><input type="checkbox" data-series="motorTemperature" checked /> Motor Temperature</label><label><input type="checkbox" data-series="vehicleSpeed" checked /> Vehicle Speed</label><label><input type="checkbox" data-series="motorTorque" checked /> Motor Torque</label><label><input type="checkbox" data-series="tyrePressure" checked /> Tyre Pressure</label></fieldset></section>
+        <section class="analysis-grid" aria-label="History analysis"><article><p>Average Battery Voltage</p><strong id="averageBatteryVoltage">Unavailable</strong></article><article><p>Max Battery Current</p><strong id="maxBatteryCurrent">Unavailable</strong></article><article><p>Max Motor Temperature</p><strong id="maxMotorTemperature">Unavailable</strong></article><article><p>Average Vehicle Speed</p><strong id="averageVehicleSpeed">Unavailable</strong></article><article><p>Warning Records</p><strong id="warningRecords">Unavailable</strong></article></section>
+        <div class="history-table-wrapper"><table class="history-table"><thead><tr><th>Time</th><th>Battery Voltage</th><th>Battery Current</th><th>Battery Temperature</th><th>Motor Temperature</th><th>Vehicle Speed</th><th>Motor Torque</th><th>Tyre Pressure</th><th>Charging</th><th>System Status</th><th>Primary Diagnosis</th></tr></thead><tbody id="historyTableBody"><tr><td colspan="11">Loading historical data...</td></tr></tbody></table></div>
+        <div class="history-charts" aria-label="Historical monitoring charts"><article class="chart-card"><h3>Battery Performance</h3><p class="chart-state" id="batteryPerformanceChartState">Loading historical data...</p><div class="chart-canvas" id="batteryPerformanceChartContainer" hidden><canvas id="batteryPerformanceChart"></canvas></div></article><article class="chart-card"><h3>Temperature</h3><p class="chart-state" id="temperatureChartState">Loading historical data...</p><div class="chart-canvas" id="temperatureChartContainer" hidden><canvas id="temperatureChart"></canvas></div></article><article class="chart-card"><h3>Vehicle Performance</h3><p class="chart-state" id="vehiclePerformanceChartState">Loading historical data...</p><div class="chart-canvas" id="vehiclePerformanceChartContainer" hidden><canvas id="vehiclePerformanceChart"></canvas></div></article><article class="chart-card"><h3>Tyre Pressure</h3><p class="chart-state" id="tyrePressureChartState">Loading historical data...</p><div class="chart-canvas" id="tyrePressureChartContainer" hidden><canvas id="tyrePressureChart"></canvas></div></article></div>
       </section>
     </main>
-
-    <!-- Chart.js and Firebase modules load from CDNs; no npm tooling is required. -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
-    <script type="module" src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script><script type="module" src="app.js"></script>
   </body>
 </html>
